@@ -34,10 +34,10 @@ else {
 Import-Module -Name $Module -ArgumentList $DevMode -Force
 
 #Set parameters to run
-$_tenantID = "5c5a81d6-ddf4-4671-9b8d-1129234436f9"
-$_clientID = "AppReg_cherwell_a5f9ddb9-b5e3-4805-91f1-2a402a931a02"
-$_clientSecret = "J{[jNH@yX|Top/}8!-C^7Mx}6"
-$_authURL = "https://nvuprd-sfc.ivanticloud.com/5c5a81d6-ddf4-4671-9b8d-1129234436f9/connect/token"
+$_tenantID = ""
+$_clientID = ""
+$_clientSecret = ""
+$_authURL = ""
 $_scope = "dataservices.read"
 $Landscape = "NVU"
 $_daysAgo = (Get-Date).AddDays(-90)
