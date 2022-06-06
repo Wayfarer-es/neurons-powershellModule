@@ -90,9 +90,18 @@ function Get-NeuronsData {
             $_response = $_response | ConvertFrom-InvalidJson
         }
 
+        # calculate PageSize for Number of Pages calculation
+        If($_page -eq 1){
+            if($_response.value.Count -ne $_response.'@odata.count') {
+                $PageSize = $_response.value.Count
+            } else {
+                $PageSize = $_response.'@odata.count'
+            }
+        }
+ 
         #Get the number of pages
         if (!$_pages) {
-            $_pages = [math]::ceiling($_response.'@odata.count' / 15)
+            $_pages = [math]::ceiling($_response.'@odata.count' / $PageSize)
         }
 
         $_dbgMessage = "Processing page $_page of $_pages"
