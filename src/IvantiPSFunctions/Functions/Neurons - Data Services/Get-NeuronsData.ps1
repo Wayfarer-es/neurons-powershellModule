@@ -1,6 +1,6 @@
  <#
     .SYNOPSIS
-    Delete Neurons Data Services data based on the supplied filter parameters.
+    Get Neurons Data Services data based on the supplied filter parameters.
 
     .DESCRIPTION
     Queries Neurons Data Services based on the supplied query to retrieve a list of device IDs. Then it proceeds to delete those devices from Neurons.
@@ -38,8 +38,14 @@ function Get-NeuronsData {
         [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
         [String]$DataEndpoint="device",
 
-        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
-        [String]$FilterString,
+        [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
+        [String]$FilterString="exists(DiscoveryId)",
+
+        [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
+        [String]$SelectString="DiscoveryId",
+
+        [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
+        [bool]$ExportToCsv,
 
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
         [String]$Token
@@ -67,8 +73,27 @@ function Get-NeuronsData {
         "data" { $_dataEndpoint = "data" }
     }
 
+    #Split select values into array for use throughout the function
+    $_selectValues = $SelectString.Split(",") 
+
+    #CSV setup
+    if ( $ExportToCsv -eq $true ) {
+        $_reportRunTime = Get-Date -Format "yyyy-MM-dd HH-mm-ss"
+        $_csvPath = "C:\Ivanti\Reports\Data Services Data Report "+$_reportRunTime+".csv"
+
+        foreach ( $_selectValue in $_selectValues ) {
+            $_selectValue=$_selectValue.Replace("/", ".")
+            $_csvHeader += '"'+$_selectValue+'",'
+        }
+
+        $_csvHeader.Substring( 0, $_csvHeader.length -1 ) | Add-Content -Path $_csvPath
+    }
+
+    #Filter cleanup
+    IF ([string]::IsNullOrWhitespace($FilterString)) { $FilterString = "exists(DiscoveryId)" }
+
     #Query URL setup
-    $_queryURL = "https://$_landscape/api/discovery/v1/$_dataEndpoint"+"?`$filter=$FilterString&`$select=DiscoveryId"
+    $_queryURL = "https://$_landscape/api/discovery/v1/$_dataEndpoint"+"?`$filter=$FilterString&`$select=$SelectString"
 
     #Headers setup
     $_headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
@@ -76,6 +101,7 @@ function Get-NeuronsData {
     $_headers.Add("Authorization", "Bearer $Token")
     $_headers.Add("Uno.TenantId", "$TenantId")
 
+    #Results variable setup
     $_page = 1
     $_results = @()
 
@@ -86,13 +112,13 @@ function Get-NeuronsData {
         }
 
         #Convert to valide json if needed
-        if ($_response.gettype() -eq [string]) {
+        if ( $_response.gettype() -eq [string] ) {
             $_response = $_response | ConvertFrom-InvalidJson
         }
 
         # calculate PageSize for Number of Pages calculation
         If($_page -eq 1){
-            if($_response.value.Count -ne $_response.'@odata.count') {
+            if( $_response.value.Count -ne $_response.'@odata.count') {
                 $PageSize = $_response.value.Count
             } else {
                 $PageSize = $_response.'@odata.count'
@@ -101,21 +127,43 @@ function Get-NeuronsData {
  
         #Get the number of pages
         if (!$_pages) {
-            $_pages = [math]::ceiling($_response.'@odata.count' / $PageSize)
+            $_pages = [math]::ceiling( $_response.'@odata.count' / $PageSize )
         }
 
         $_dbgMessage = "Processing page $_page of $_pages"
         Write-Host $_dbgMessage
 
         #Process and submit each record in the batch
-        foreach ($_result in $_response.value) {
-            $_results += $_result.DiscoveryId
+        foreach ( $_result in $_response.value ) {
+            $_resultRow = ""
+
+            foreach ( $_selectValue in $_selectValues ) {
+                $_selectValueArray = $_selectValue.split("/")
+                $_resultItem = $_result
+
+                foreach ( $_selectValueArrayItem in $_selectValueArray ) {
+                    $_resultItem = $_resultItem.$_selectValueArrayItem
+                }
+
+                $_resultRow += '"'+$_resultItem+'",'
+            }
+
+            $_resultRow = $_resultRow.Substring( 0, $_resultRow.length -1 )
+
+            if ( $ExportToCsv -eq $true) {
+                $_resultRow | Add-Content -Path $_CSVPath
+            }
+            $_results += $_resultRow
         }
 
         $_queryURL = $_response.'@odata.nextLink'
         $_page++
        
-    } until ($_page -ge ($_pages+1))
+    } until ( $_page -ge ( $_pages + 1) )
 
+    if ( $ExportToCsv -eq $true ) {
+        $_dbgMessage = "Successfully got "+$_results.count+' records. CSV file is located at "'+$_csvPath+'"'
+        return $_dbgMessage
+    }
     return $_results
 }
