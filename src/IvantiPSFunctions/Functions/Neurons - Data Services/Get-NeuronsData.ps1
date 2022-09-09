@@ -5,17 +5,23 @@
     .DESCRIPTION
     Queries Neurons Data Services based on the supplied query to retrieve a list of device IDs. Then it proceeds to delete those devices from Neurons.
 
-    .PARAMETER TenantId
-    Mandatory. Tenant ID for the desired customer.
-
     .PARAMETER Landscape
     Mandatory. Landscape for the desired customer.
     
     .PARAMETER DataEndpoint
-    Mandatory. Provide the data endpoint for which you want to delete data. 
+    Optional. Provide the data endpoint for which you want to delete data. 
 
     .PARAMETER FilterString
-    Mandatory. Data Services filter string excluding "filer="
+    Optional. String to specify Data Services filter string. Don't include "filer=".
+    
+    .PARAMETER SelectString
+    Optional. String to specify Data Services select string. Don't include "select=".
+
+    .PARAMETER ExportToCsv
+    Optional. Boolean to specify that results to be saved in a CSV file.  CSV files will be stored under C:\Ivanti\Reports\.
+
+    .PARAMETER CSVName
+    Optional. String to specify a specific name of the CSV file.  
 
     .PARAMETER Token
     Mandatory. JWT token for accessing Data Services. 
@@ -30,9 +36,6 @@ function Get-NeuronsData {
     param (
     
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
-        [String]$TenantId,
-
-        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
         [String]$Landscape,
         
         [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
@@ -45,7 +48,10 @@ function Get-NeuronsData {
         [String]$SelectString="DiscoveryId",
 
         [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
-        [bool]$ExportToCsv,
+        [bool]$ExportToCsv=$false,
+
+        [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
+        [String]$CSVName="Neurons Report",
 
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
         [String]$Token
@@ -79,7 +85,7 @@ function Get-NeuronsData {
     #CSV setup
     if ( $ExportToCsv -eq $true ) {
         $_reportRunTime = Get-Date -Format "yyyy-MM-dd HH-mm-ss"
-        $_csvPath = "C:\Ivanti\Reports\Data Services Data Report "+$_reportRunTime+".csv"
+        $_csvPath = "C:\Ivanti\Reports\" + $CSVName + " - " + $_reportRunTime + ".csv"
 
         foreach ( $_selectValue in $_selectValues ) {
             $_selectValue=$_selectValue.Replace("/", ".")
@@ -90,7 +96,7 @@ function Get-NeuronsData {
     }
 
     #Filter cleanup
-    IF ([string]::IsNullOrWhitespace($FilterString)) { $FilterString = "exists(DiscoveryId)" }
+    IF ( [string]::IsNullOrWhitespace($FilterString) ) { $FilterString = "exists(DiscoveryId)" }
 
     #Query URL setup
     $_queryURL = "https://$_landscape/api/discovery/v1/$_dataEndpoint"+"?`$filter=$FilterString&`$select=$SelectString"
@@ -99,7 +105,6 @@ function Get-NeuronsData {
     $_headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
     $_headers.Add("content-type", "application/json;charset=UTF-8")
     $_headers.Add("Authorization", "Bearer $Token")
-    $_headers.Add("Uno.TenantId", "$TenantId")
 
     #Results variable setup
     $_page = 1
