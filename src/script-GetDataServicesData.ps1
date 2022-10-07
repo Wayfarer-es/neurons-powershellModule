@@ -40,7 +40,6 @@ $_authURL = "[insert auth URL here]"
 $_scope = "dataservices.read"
 
 #Use these
-$_tenantID = "[insert tenant id here"
 $_userJWT = '[insert user bearer token]'
 $_landscape = "UKU"
 
@@ -52,7 +51,7 @@ $_select = "DiscoveryId,DeviceName,Network/NICAddress"
 if ( $_userJWT) { $_token = $_userJWT } else { $_token = Get-AccessToken -AuthURL $_authURL -ClientID $_clientID -ClientSecret $_clientSecret -Scopes $_scope }
 
 $_results = Invoke-Command -ScriptBlock {
-    Get-NeuronsData -TenantId $_tenantID -Landscape $_landscape -FilterString $_filter -SelectString $_select -ExportToCsv $true -Token $_token 
+    Get-NeuronsData -Landscape $_landscape -FilterString $_filter -SelectString $_select -ExportToCsv $true -Token $_token 
 }
 
 $_results

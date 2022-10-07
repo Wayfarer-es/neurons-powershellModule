@@ -30,9 +30,6 @@ function Invoke-DeleteNeuronsData {
     param (
     
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
-        [String]$TenantId,
-
-        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
         [String]$Landscape,
 
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
@@ -70,14 +67,13 @@ function Invoke-DeleteNeuronsData {
     $_headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
     $_headers.Add("content-type", "application/json;charset=UTF-8")
     $_headers.Add("Authorization", "Bearer $Token")
-    $_headers.Add("Uno.TenantId", "$TenantId")
 
     foreach ($_record in $DiscoveryIds) 
     {
 
         #Query URL setup
         $_filter = "exists(DiscoveryId) and DiscoveryId eq '$_record'"
-        $_queryURL = "https://$_landscape/api/discovery/v1/$_dataEndpoint?`$filter=$_filter"
+        $_queryURL = "https://$_landscape/api/discovery/v1/"+$_dataEndpoint+"?`$filter=$_filter"
 
         #Initial query to Neurons to get result count
         $_result = Invoke-Command -ScriptBlock {

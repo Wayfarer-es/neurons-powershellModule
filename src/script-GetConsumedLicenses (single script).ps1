@@ -1,36 +1,18 @@
- <#
-    .SYNOPSIS
-    Get Neurons Data Services data based on the supplied filter parameters.
+#Set parameters to run
+$_clientID = "[insert client id here]"
+$_clientSecret = "[insert client secret here]"
+$_authURL = "[insert auth URL here]"
+$_scope = "dataservices.read"
+$_landscape = "NVU"
+$_csvName = "Neurons Consumed Licenses"
+$_daysAgo = (Get-Date).AddDays(-90)
+$_date = Get-Date -Date $_daysAgo -Format 'yyyy-MM-dd'
 
-    .DESCRIPTION
-    Queries Neurons Data Services based on the supplied query to retrieve a list of device IDs. Then it proceeds to delete those devices from Neurons.
+#Static script parameters
+$_filter = "DiscoveryMetadata.Providers.processDate gt '$_date' and (contains(OS.Name, 'windows') or contains(OS.Name, 'mac') or (contains(OS.Name, 'red hat') and contains(OS.Name, '7')) or (contains(OS.Name, 'centos') and contains(OS.Name, '7')) or not contains(OS.Name, 'phone'))"
+$_select = "DeviceName,OS/Name,DiscoveryMetadata/Providers/processDate"
 
-    .PARAMETER Landscape
-    Mandatory. Landscape for the desired customer.
-    
-    .PARAMETER DataEndpoint
-    Optional. Provide the data endpoint for which you want to delete data. 
-
-    .PARAMETER FilterString
-    Optional. String to specify Data Services filter string. Don't include "filer=".
-    
-    .PARAMETER SelectString
-    Optional. String to specify Data Services select string. Don't include "select=".
-
-    .PARAMETER ExportToCsv
-    Optional. Boolean to specify that results to be saved in a CSV file.  CSV files will be stored under C:\Ivanti\Reports\.
-
-    .PARAMETER CSVName
-    Optional. String to specify a specific name of the CSV file.  
-
-    .PARAMETER Token
-    Mandatory. JWT token for accessing Data Services. 
-
-    .NOTES
-    Author:  Ivanti
-    Version: 1.0.0
-#>
-
+# ======================================= Functions ======================================= 
 function Get-NeuronsData {
     #Input parameters. These need to be collected at time of execution.
     param (
@@ -157,8 +139,6 @@ function Get-NeuronsData {
 
             if ( $ExportToCsv -eq $true) {
                 $_resultRow | Add-Content -Path $_CSVPath
-            } else {
-                $_resultRow = $_resultRow.replace('"','')
             }
             $_results += $_resultRow
         }
@@ -174,3 +154,82 @@ function Get-NeuronsData {
     }
     return $_results
 }
+function Get-AccessToken {
+    param (
+
+        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
+        [String]$AuthURL,
+
+        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
+        [String]$ClientID,
+
+        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
+        [String]$ClientSecret,
+
+        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
+        [String]$Scopes
+
+    )
+
+    #Build the request body and header. This will be done differently depending on the API's authorization method.
+    $_body = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $_body.Add("grant_type", "client_credentials")
+    $_body.Add("client_id", $ClientID)
+    $_body.Add("client_secret", $ClientSecret)
+    $_body.Add("scope", $Scopes)
+
+    $_headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $_headers.Add("Accept", "application/json")
+    $_headers.Add("Content-Type", "application/x-www-form-urlencoded")
+
+    $_token = Invoke-RestMethod -Uri $AuthURL -Method POST -Headers $_headers -Body $_body 
+
+    return $_token.access_token
+}
+function Invoke-Command {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Position=0, Mandatory=$true)]
+        [scriptblock]$ScriptBlock,
+
+        [Parameter(Position=1, Mandatory=$false)]
+        [int]$Retries = 3,
+
+        [Parameter(Position=2, Mandatory=$false)]
+        [int]$Delay = 1000
+    )
+
+    Begin {
+        $Count = 0
+        $Success = $null
+    }
+
+    Process {
+        do {
+            $Count++
+            $DbgMessage = "Executing script block, try "+$Count
+            Write-Debug $DbgMessage
+            try {
+                $ScriptBlock.Invoke()
+                $Success = $true
+                return
+            } catch {
+                Write-Error $_.Exception.InnerException.Message -ErrorAction Continue
+                $Sleep = $Delay * [math]::Pow($Count,2)
+                Start-Sleep -Milliseconds $Sleep
+            }
+        } until ($Count -eq $Retries -or $Success)
+            # Throw an error after $Maximum unsuccessful invocations. Doesn't need
+            # a condition, since the function returns upon successful invocation.
+            throw 'Execution failed.'
+    }
+}
+
+# ======================================= Run Code ======================================= 
+if ( $_userJWT) { $_token = $_userJWT } else { $_token = Get-AccessToken -AuthURL $_authURL -ClientID $_clientID -ClientSecret $_clientSecret -Scopes $_scope }
+
+$_results = Invoke-Command -ScriptBlock {
+    Get-NeuronsData -Landscape $_landscape -FilterString $_filter -SelectString $_select -ExportToCsv $true -CSVName $_csvName -Token $_token 
+}
+
+$_results

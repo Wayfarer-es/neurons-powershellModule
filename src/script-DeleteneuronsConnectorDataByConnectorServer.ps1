@@ -42,7 +42,6 @@ $_authURL = "[insert auth URL here]"
 $_scope = "dataservices.read"
 
 #Use these
-$_tenantID = "[insert tenant id here]"
 $_userJWT = '[insert user JWT here]'
 $_landscape = "NVU"
 $_connectorServerName = "[insert connector server name here]"
@@ -56,7 +55,7 @@ if ( $_userJWT) { $_token = $_userJWT } else { $_token = Get-AccessToken -AuthUR
 
 try {
     $_response = Invoke-Command -ScriptBlock {
-        Get-NeuronsConnectorServerConnectors -TenantId $_tenantID -Landscape $_landscape -ConnectorServerName $_connectorServerName -Token $_token
+        Get-NeuronsConnectorServerConnectors -Landscape $_landscape -ConnectorServerName $_connectorServerName -Token $_token
     }
 } catch {
     Throw "Couldn't get connectors from connector server"
@@ -73,7 +72,7 @@ foreach ( $_connector in $_response.value ) {
 
         $_filter = "DiscoveryMetadata.Connectors.ConnectorId eq '$_connectorID'"
         $_deviceIds = $null
-        $_deviceIds = Get-NeuronsData -TenantId $_tenantID -Landscape $_landscape -DataEndpoint $_endpoint -FilterString $_filter -Token $_token
+        $_deviceIds = Get-NeuronsData -Landscape $_landscape -DataEndpoint $_endpoint -FilterString $_filter -Token $_token
 
         if ($_deviceIds) {
 
@@ -81,7 +80,7 @@ foreach ( $_connector in $_response.value ) {
             Write-Host $_dbgMessage
 
             $_result = Invoke-Command -ScriptBlock {
-                Invoke-DeleteNeuronsConnectorData -TenantId $_tenantID -Landscape $_landscape -DataEndpoint $_endpoint -Provider $_provider -DiscoveryIds $_deviceIds -Token $_token
+                Invoke-DeleteNeuronsConnectorData -Landscape $_landscape -DataEndpoint $_endpoint -Provider $_provider -DiscoveryIds $_deviceIds -Token $_token
             }
 
             if ( !$_result ) {
