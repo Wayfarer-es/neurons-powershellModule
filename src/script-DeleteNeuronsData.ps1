@@ -34,21 +34,23 @@ else {
 Import-Module -Name $Module -ArgumentList $DevMode -Force
 
 #Set parameters to run
-$_tenantID = ""
-$_clientID = ""
-$_clientSecret = ""
-$_authURL = ""
+$_clientID = "[insert client id here]"
+$_clientSecret = "[insert client secret here]"
+$_authURL = "[insert auth URL here]"
 $_scope = "dataservices.read"
-$Landscape = "NVU"
+
+#Use these
+$_userJWT = ''
+$_landscape = "NVU"
 $_daysAgo = (Get-Date).AddDays(-90)
 $_date = Get-Date -Date $_daysAgo -Format 'yyyy-MM-dd'
-$_filter = "LastHardwareScanDate le '$_date'"
+$_filter = "DiscoveryMetadata.DiscoveryServiceLastUpdateTime le '$_date'"
 
 #Run code
-$_token = Get-AccessToken -AuthURL $_authURL -ClientID $_clientID -ClientSecret $_clientSecret -Scopes $_scope
-$_deviceIds = Get-NeuronsData -TenantId $_tenantID -Landscape $Landscape -FilterString $_filter -Token $_token
+if ( $_userJWT) { $_token = $_userJWT } else { $_token = Get-AccessToken -AuthURL $_authURL -ClientID $_clientID -ClientSecret $_clientSecret -Scopes $_scope }
+$_deviceIds = Get-NeuronsData -Landscape $_landscape -FilterString $_filter -Token $_token
 if ($null -ne $_deviceIds -or $_deviceIds) {
-    Invoke-DeleteNeuronsData -TenantId $_tenantID -Landscape $Landscape -DataEndpoint 'device' -DiscoveryIds $_deviceIds -Token $_token
+    Invoke-DeleteNeuronsData -Landscape $_landscape -DataEndpoint 'device' -DiscoveryIds $_deviceIds -Token $_token
 } else {
     $_dbgMessage = "No devices to delete"
     Write-Host $_dbgMessage
