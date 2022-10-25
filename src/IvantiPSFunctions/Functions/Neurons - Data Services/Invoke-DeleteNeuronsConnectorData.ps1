@@ -5,9 +5,6 @@
     .DESCRIPTION
     Deletes Neurons Data Services connector data (not entire record) based on the supplied device IDs and connector ID.
 
-    .PARAMETER TenantId
-    Mandatory. Tenant ID for the desired customer.
-
     .PARAMETER Landscape
     Mandatory. Landscape for the desired customer.
 
@@ -31,9 +28,6 @@
 function Invoke-DeleteNeuronsConnectorData {
     #Input parameters. These need to be collected at time of execution.
     param (
-    
-        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
-        [String]$TenantId,
 
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
         [String]$Landscape,

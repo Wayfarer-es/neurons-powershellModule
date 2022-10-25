@@ -5,9 +5,6 @@
     .DESCRIPTION
     Queries Neurons Data Services based on the supplied query to retrieve a list of device IDs. Then it proceeds to delete those devices from Neurons.
 
-    .PARAMETER TenantId
-    Mandatory. Tenant ID for the desired customer.
-
     .PARAMETER Landscape
     Mandatory. Landscape for the desired customer.
 
@@ -26,9 +23,6 @@ function Get-NeuronsConnectorServerConnectors {
     #Input parameters. These need to be collected at time of execution.
     param (
     
-        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
-        [String]$TenantId,
-
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
         [String]$Landscape,
 
