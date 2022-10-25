@@ -1,21 +1,12 @@
  <#
     .SYNOPSIS
-    Delete Neurons Data Services data based on the supplied filter parameters.
+    Returns a user freindly name for the different configuration types.
 
     .DESCRIPTION
-    Queries Neurons Data Services based on the supplied query to retrieve a list of device IDs. Then it proceeds to delete those devices from Neurons.
+    Returns the provider name or configuration type name for every connector.
 
-    .PARAMETER TenantId
-    Mandatory. Tenant ID for the desired customer.
-
-    .PARAMETER Landscape
-    Mandatory. Landscape for the desired customer.
-
-    .PARAMETER ConnectorServerName
-    Mandatory. Connector Server Name (ie. what's shown in the UI).
-
-    .PARAMETER Token
-    Mandatory. JWT token for accessing Data Services. 
+    .PARAMETER ConfigurationTypeRecID
+    Mandatory. The Rec ID for the configuration type.
 
     .NOTES
     Author:  Ivanti
@@ -56,6 +47,7 @@ function Get-NeuronsConnectorProviderByConfigTypeRecID {
         "d064f75c-aa39-423b-b2ef-659b660fc884" { $_response = "ISeCCollector" }
         "d09ecb92-aef1-48b2-a2cc-c39224961e42" { $_response = "ISMCollector" }
         "5eca8d8e-e9f0-4f3e-baff-046c8e238c2e" { $_response = "JamfCollector" }
+        "1fe2c203-81c1-4b5d-b51b-39678105dbb6" { $_response = "LenovoWarrantyCollector" }
         "8fa7fd4a-6fd3-450c-a969-e8b649b5a47c" { $_response = "MobileIronCollector" }
         "54e6ca5b-4379-4063-b432-7b2a30cf2439" { $_response = "M365Collector" }
         "612384ce-e0b1-4047-9a44-7a146789c79a" { $_response = "OktaCollector" }
