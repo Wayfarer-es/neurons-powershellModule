@@ -20,8 +20,8 @@
     .PARAMETER ExportToCsv
     Optional. Boolean to specify that results to be saved in a CSV file.  CSV files will be stored under C:\Ivanti\Reports\.
 
-    .PARAMETER CSVName
-    Optional. String to specify a specific name of the CSV file.  
+    .PARAMETER CSVPath
+    Optional. String to specify a specific path and name of the CSV file.  
 
     .PARAMETER Token
     Mandatory. JWT token for accessing Data Services. 
@@ -51,7 +51,7 @@ function Get-NeuronsData {
         [bool]$ExportToCsv=$false,
 
         [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
-        [String]$CSVName="Neurons Report",
+        [String]$CSVPath="C:\Ivanti\Reports\Neurons Report",
 
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
         [String]$Token
@@ -84,8 +84,23 @@ function Get-NeuronsData {
 
     #CSV setup
     if ( $ExportToCsv -eq $true ) {
-        $_reportRunTime = Get-Date -Format "yyyy-MM-dd HH-mm-ss"
-        $_csvPath = "C:\Ivanti\Reports\" + $CSVName + " - " + $_reportRunTime + ".csv"
+        
+        if ( $CSVPath -eq "C:\Ivanti\Reports\Neurons Report") {
+
+            $_reportRunTime = Get-Date -Format "yyyy-MM-dd HH-mm-ss"
+            $_csvPath = $CSVName + " - " + $_reportRunTime + ".csv"
+
+        } else {
+
+            if ( $CSVPath.contains(".csv") ) {
+                $_csvPath = $CSVPath
+            } else {
+                $_csvPath = $CSVPath + ".csv"
+            }  
+
+        }
+
+        Clear-Content $_csvPath
 
         foreach ( $_selectValue in $_selectValues ) {
             $_selectValue=$_selectValue.Replace("/", ".")
@@ -122,17 +137,21 @@ function Get-NeuronsData {
         }
 
         # calculate PageSize for Number of Pages calculation
-        If($_page -eq 1){
+        If( $_page -eq 1 ){
             if( $_response.value.Count -ne $_response.'@odata.count') {
-                $PageSize = $_response.value.Count
+                $_pageSize = $_response.value.Count
             } else {
-                $PageSize = $_response.'@odata.count'
+                $_pageSize = $_response.'@odata.count'
             }
         }
  
         #Get the number of pages
-        if (!$_pages) {
-            $_pages = [math]::ceiling( $_response.'@odata.count' / $PageSize )
+        if ( !$_pages ) {
+            if ( $_pageSize -eq 0 ) {
+                $_pages = 1
+            } else {
+                $_pages = [math]::ceiling( $_response.'@odata.count' / $_pageSize )
+            }
         }
 
         $_dbgMessage = "Processing page $_page of $_pages"
