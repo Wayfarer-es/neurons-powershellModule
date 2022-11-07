@@ -33,26 +33,19 @@ else {
 # ----- Import Module ----- 
 Import-Module -Name $Module -ArgumentList $DevMode -Force
 
-#Set parameters to run
-$_clientID = "[insert client id here]"
-$_clientSecret = "[insert client secret here]"
-$_authURL = "[insert auth URL here]"
-$_scope = "dataservices.read"
-$_landscape = "NVU"
-
-#Use the userJWT variable when you want to do more than just getting data from Ivanti Neurons
+#Parameters to run
 $_userJWT = ''
-
-
-#Static script parameters
-$_filter = "_provider eq 'ivantiinventoryengine'&`$providerFilter=ivantiinventoryengine"
-$_select = "DiscoveryId,DeviceName,Network/NICAddress"
+$_landscape = "NVU"
+$_daysAgo = (Get-Date).AddDays(-90)
+$_date = Get-Date -Date $_daysAgo -Format 'yyyy-MM-dd'
+$_filter = "DiscoveryMetadata.DiscoveryServiceLastUpdateTime le '$_date'"
 
 #Run code
 if ( $_userJWT) { $_token = $_userJWT } else { $_token = Get-AccessToken -AuthURL $_authURL -ClientID $_clientID -ClientSecret $_clientSecret -Scopes $_scope }
-
-$_results = Invoke-Command -ScriptBlock {
-    Get-NeuronsData -Landscape $_landscape -FilterString $_filter -SelectString $_select -ExportToCsv $true -CSVPath "C:\Test File" -Token $_token 
+$_deviceIds = Get-NeuronsData -Landscape $_landscape -FilterString $_filter -Token $_token
+if ($null -ne $_deviceIds -or $_deviceIds) {
+    Invoke-DeleteNeuronsData -Landscape $_landscape -DataEndpoint 'device' -DiscoveryIds $_deviceIds -Token $_token
+} else {
+    $_dbgMessage = "No devices to delete"
+    Write-Host $_dbgMessage
 }
-
-$_results
