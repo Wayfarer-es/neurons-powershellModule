@@ -1,9 +1,9 @@
  <#
     .SYNOPSIS
-    Delete Neurons Data Services data for a particular connector based on the supplied filter parameters.
+    Delete Neurons Data Services data for a particular provider based on the supplied filter parameters.
 
     .DESCRIPTION
-    Deletes Neurons Data Services connector data (not entire record) based on the supplied device IDs and connector ID.
+    Deletes Neurons Data Services provider data (not entire record) based on the supplied device IDs and provider name.
 
     .PARAMETER Landscape
     Mandatory. Landscape for the desired customer.
@@ -15,7 +15,7 @@
     Mandatory. Landscape for the desired customer.
 
     .PARAMETER Provider
-    Mandatory. Provider type for the connector.
+    Mandatory. Provider type for the provider.
 
     .PARAMETER Token
     Mandatory. JWT token for accessing Data Services. 
@@ -25,7 +25,7 @@
     Version: 1.0.0
 #>
 
-function Invoke-DeleteNeuronsConnectorData {
+function Invoke-DeletePartialProviderData {
     #Input parameters. These need to be collected at time of execution.
     param (
 
