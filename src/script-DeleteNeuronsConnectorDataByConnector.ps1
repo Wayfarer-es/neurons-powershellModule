@@ -61,7 +61,7 @@ foreach ($_endpoint in $_dataEndpoints) {
         Write-Host $_dbgMessage
 
         $_result = Invoke-Command -ScriptBlock {
-            Invoke-DeleteNeuronsConnectorData -Landscape $_landscape -DataEndpoint $_endpoint -Provider $_provider -DiscoveryIds $_deviceIds -Token $_token
+            Invoke-DeletePartialProviderData -Landscape $_landscape -DataEndpoint $_endpoint -Provider $_provider -DiscoveryIds $_deviceIds -Token $_token
         }
 
         if ( !$_result ) {
