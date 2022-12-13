@@ -19,10 +19,10 @@
 #Neurons to Splunk input parameters. These need to be collected at time of execution.
 param (
     
-    [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
+    [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
     [String]$SeleniumTestScriptFile,
 
-    [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
+    [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
     [String]$SeleniumResultsFile
 
 )

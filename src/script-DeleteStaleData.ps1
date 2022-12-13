@@ -1,4 +1,4 @@
-# *************************** Import Ivanti Neurons PowerShell Module *************************** 
+#Import Module
 if (Test-Path ".\IvantiPSFunctions\IvantiPSFunctions.psm1" -PathType leaf) {
     $Module = Get-Item ".\IvantiPSFunctions\IvantiPSFunctions.psm1" | Resolve-Path -Relative
     Write-Debug "Found module file"
@@ -6,44 +6,37 @@ if (Test-Path ".\IvantiPSFunctions\IvantiPSFunctions.psm1" -PathType leaf) {
     $Module = Get-Item ".\src\IvantiPSFunctions\IvantiPSFunctions.psm1" | Resolve-Path -Relative
     Write-Debug "Found module file"
 } else {
-    $StatusCode = "404"
-    $Exception = [Exception]::new("PowerShell module cannot be found.  Error code ($($StatusCode))")
-    $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
-        $Exception,
-        "$($StatusCode)",
-        [System.Management.Automation.ErrorCategory]::FatalError,
-        $TargetObject
-    )
-    $PSCmdlet.WriteError($ErrorRecord)
+    throw "PowerShell module cannot be found."
     Exit
 }
-
-# ----- Import Module ----- 
 Import-Module -Name $Module -ArgumentList $DevMode -Force
 
-# ************ Set Parameters ************ 
+#Import environment
+$_environmentConfig = Get-Content -Path "$PSScriptRoot\Environment\environment-config.json" | ConvertFrom-Json
+$_environment = $_environmentConfig.($_environmentConfig.default)  
 
-#Parameters to modify for script to run
-$_userJWT = ''
-$_landscape = "NVU"
+#Set parameters to run
+$_NeuronsURL = $_environment.tenant_url
+$_user = $_environment.user
+$_password = $_environment.password
+$_landscape = $_environment.landscape
+$_userJWT = Get-UserJwt -NeuronsURL $_NeuronsURL -User $_user -Password $_password
+
+# *************** Parameters to modify for script to run ***************
 $_daysAgo = (Get-Date).AddDays(-90)
 $_date = Get-Date -Date $_daysAgo -Format 'yyyy-MM-dd'
 $_ignoreWarrantyProviders = $true
-
-#Static script parameters
 $_dataEndpoints = "device","data"
 
-# ************ Run Code ************ 
-if ( $_userJWT) { $_token = $_userJWT } else { $_token = Get-AccessToken -AuthURL $_authURL -ClientID $_clientID -ClientSecret $_clientSecret -Scopes $_scope }
-
+#Run Code
 foreach ( $_endpoint in $_dataEndpoints ) {
 
-    # ----- Get list of providers -----
+    #Get list of providers
     try {
 
         [System.Collections.ArrayList]$_providers = Invoke-Command -ScriptBlock {
 
-            Get-NeuronsDataProviders -Landscape $_landscape -DataEndpoint $_endpoint -Token $_token
+            Get-NeuronsDataProviders -Landscape $_landscape -DataEndpoint $_endpoint -Token $_userJWT
             $_dbgMessage = "Got list of providers for $_endpoint endpoint"
             Write-Host $_dbgMessage
 
@@ -65,7 +58,7 @@ foreach ( $_endpoint in $_dataEndpoints ) {
         # ----- Delete data for specific provider -----
         $_filter = "_provider eq '$_provider' and DiscoveryMetadata.DiscoveryServiceLastUpdateTime le '$_date'&`$providerFilter=$_provider"
         $_deviceIds = $null
-        $_deviceIds = Get-NeuronsData -Landscape $_landscape -DataEndpoint $_endpoint -FilterString $_filter -Token $_token
+        $_deviceIds = Get-NeuronsData -Landscape $_landscape -DataEndpoint $_endpoint -FilterString $_filter -Token $_userJWT
 
         if ($_deviceIds) {
 
@@ -73,7 +66,7 @@ foreach ( $_endpoint in $_dataEndpoints ) {
             Write-Host $_dbgMessage
 
             $_result = Invoke-Command -ScriptBlock {
-                Invoke-DeletePartialProviderData -Landscape $_landscape -DataEndpoint $_endpoint -Provider $_provider -DiscoveryIds $_deviceIds -Token $_token
+                Invoke-DeletePartialProviderData -Landscape $_landscape -DataEndpoint $_endpoint -Provider $_provider -DiscoveryIds $_deviceIds -Token $_userJWT
             }
 
             if ( !$_result ) {

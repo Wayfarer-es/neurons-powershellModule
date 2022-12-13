@@ -1,4 +1,4 @@
-# *************************** Import Ivanti Neurons PowerShell Module *************************** 
+#Import Module
 if (Test-Path ".\IvantiPSFunctions\IvantiPSFunctions.psm1" -PathType leaf) {
     $Module = Get-Item ".\IvantiPSFunctions\IvantiPSFunctions.psm1" | Resolve-Path -Relative
     Write-Debug "Found module file"
@@ -6,56 +6,31 @@ if (Test-Path ".\IvantiPSFunctions\IvantiPSFunctions.psm1" -PathType leaf) {
     $Module = Get-Item ".\src\IvantiPSFunctions\IvantiPSFunctions.psm1" | Resolve-Path -Relative
     Write-Debug "Found module file"
 } else {
-    $StatusCode = "404"
-    $Exception = [Exception]::new("PowerShell module cannot be found.  Error code ($($StatusCode))")
-    $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
-        $Exception,
-        "$($StatusCode)",
-        [System.Management.Automation.ErrorCategory]::FatalError,
-        $TargetObject
-    )
-    $PSCmdlet.WriteError($ErrorRecord)
+    throw "PowerShell module cannot be found."
     Exit
 }
-
-# ----- Check to see if Module is signed ----- 
-if ($IsWindows) {
-    $Signed = Get-AuthenticodeSignature -FilePath $Module
-    if ($DevMode -ne "true" -and $Signed.Status -ne "Valid") {
-        Write-Error "Module is not signed."
-        Exit
-    }
-}
-else {
-    Write-Debug "Skipping module certificate check."
-}
-
-# ----- Import Module ----- 
 Import-Module -Name $Module -ArgumentList $DevMode -Force
 
-# ----- Set Parameters ----- 
+#Import environment
+$_environmentConfig = Get-Content -Path "$PSScriptRoot\Environment\environment-config.json" | ConvertFrom-Json
+$_environment = $_environmentConfig.($_environmentConfig.default)  
 
 #Set parameters to run
-$_clientID = "[insert client id here]"
-$_clientSecret = "[insert client secret here]"
-$_authURL = "[insert auth URL here]"
-$_scope = "dataservices.read"
+$_NeuronsURL = $_environment.tenant_url
+$_user = $_environment.user
+$_password = $_environment.password
+$_landscape = $_environment.landscape
+$_userJWT = Get-UserJwt -NeuronsURL $_NeuronsURL -User $_user -Password $_password
 
-#Use these
-$_userJWT = ''
-$_landscape = "NVU"
+# *************** Parameters to modify for script to run ***************
 $_connectorServerName = "uemserver"
-
-
-#Static script parameters
 $_dataEndpoints = "device","data"
+$_filter = "DiscoveryMetadata.Connectors.ConnectorId eq '$_connectorID'"
 
-# ----- Run Code ----- 
-if ( $_userJWT) { $_token = $_userJWT } else { $_token = Get-AccessToken -AuthURL $_authURL -ClientID $_clientID -ClientSecret $_clientSecret -Scopes $_scope }
-
+#Run Code 
 try {
     $_response = Invoke-Command -ScriptBlock {
-        Get-NeuronsConnectorServerConnectors -Landscape $_landscape -ConnectorServerName $_connectorServerName -Token $_token
+        Get-NeuronsConnectorServerConnectors -Landscape $_landscape -ConnectorServerName $_connectorServerName -Token $_userJWT
     }
 } catch {
     Throw "Couldn't get connectors from connector server"
@@ -72,7 +47,7 @@ foreach ( $_connector in $_response.value ) {
 
         $_filter = "DiscoveryMetadata.Connectors.ConnectorId eq '$_connectorID'"
         $_deviceIds = $null
-        $_deviceIds = Get-NeuronsData -Landscape $_landscape -DataEndpoint $_endpoint -FilterString $_filter -Token $_token
+        $_deviceIds = Get-NeuronsData -Landscape $_landscape -DataEndpoint $_endpoint -FilterString $_filter -Token $_userJWT
 
         if ($_deviceIds) {
 
@@ -80,7 +55,7 @@ foreach ( $_connector in $_response.value ) {
             Write-Host $_dbgMessage
 
             $_result = Invoke-Command -ScriptBlock {
-                Invoke-DeletePartialProviderData -Landscape $_landscape -DataEndpoint $_endpoint -Provider $_provider -DiscoveryIds $_deviceIds -Token $_token
+                Invoke-DeletePartialProviderData -Landscape $_landscape -DataEndpoint $_endpoint -Provider $_provider -DiscoveryIds $_deviceIds -Token $_userJWT
             }
 
             if ( !$_result ) {

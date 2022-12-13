@@ -51,7 +51,7 @@ function Get-NeuronsData {
         [bool]$ExportToCsv=$false,
 
         [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
-        [String]$CSVPath="C:\Ivanti\Reports\Neurons Report",
+        [String]$CSVPath="$PSScriptRoot\Reports\Neurons Report",
 
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
         [String]$Token
@@ -85,29 +85,33 @@ function Get-NeuronsData {
     #CSV setup
     if ( $ExportToCsv -eq $true ) {
         
-        if ( $CSVPath -eq "C:\Ivanti\Reports\Neurons Report") {
-
+        if ( $CSVPath -eq "$PSScriptRoot\Reports\Neurons Report") {
             $_reportRunTime = Get-Date -Format "yyyy-MM-dd HH-mm-ss"
-            $_csvPath = $CSVName + " - " + $_reportRunTime + ".csv"
+            $_csvPathName = $CSVPath + "Report - " + $_reportRunTime + ".csv"
 
         } else {
-
             if ( $CSVPath.contains(".csv") ) {
-                $_csvPath = $CSVPath
+                $_csvPathName = $CSVPath
             } else {
-                $_csvPath = $CSVPath + ".csv"
+                $_csvPathName = $CSVPath + ".csv"
             }  
+            
+            $_csvName = $CSVPath -match '^(.*[\\\/])'
+            if ( $_csvName ) {
+                $CSVPath = $matches[1]
+            }
 
         }
 
-        Clear-Content $_csvPath
-
+        New-Item -ItemType Directory -Force -Path $CSVPath
+        Clear-Content $_csvPathName
+        
         foreach ( $_selectValue in $_selectValues ) {
             $_selectValue=$_selectValue.Replace("/", ".")
             $_csvHeader += '"'+$_selectValue+'",'
         }
 
-        $_csvHeader.Substring( 0, $_csvHeader.length -1 ) | Add-Content -Path $_csvPath
+        $_csvHeader.Substring( 0, $_csvHeader.length -1 ) | Add-Content -Force -Path $_csvPathName
     }
 
     #Filter cleanup
@@ -175,7 +179,7 @@ function Get-NeuronsData {
             $_resultRow = $_resultRow.Substring( 0, $_resultRow.length -1 )
 
             if ( $ExportToCsv -eq $true) {
-                $_resultRow | Add-Content -Path $_CSVPath
+                $_resultRow | Add-Content -Path $_csvPathName
             } else {
                 $_resultRow = $_resultRow.replace('"','')
             }
@@ -188,7 +192,7 @@ function Get-NeuronsData {
     } until ( $_page -ge ( $_pages + 1) )
 
     if ( $ExportToCsv -eq $true ) {
-        $_dbgMessage = "Successfully got "+$_results.count+' records. CSV file is located at "'+$_csvPath+'"'
+        $_dbgMessage = "Successfully got "+$_results.count+' records. CSV file is located at "'+$_csvPathName+'"'
         return $_dbgMessage
     }
     return $_results
