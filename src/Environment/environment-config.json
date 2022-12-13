@@ -1,0 +1,29 @@
+{
+    "default": "vantosi",
+    "tenantToExportData": "vantosi",
+    "tenantToImportData":"may14",
+    "vantosi": {
+        "auth_url": "https://nvuprd-sfc.ivanticloud.com/5c5a81d6-ddf4-4671-9b8d-1129234436f9/connect/token",
+        "client_id": "AppReg_cherwell_a5f9ddb9-b5e3-4805-91f1-2a402a931a02",
+        "client_secret": "[Ivanti Neurons app client secret]",
+        "scope": "dataservices.read",
+        "landscape": "NVU",
+        "tenant_id": "5c5a81d6-ddf4-4671-9b8d-1129234436f9",
+        "tenant_url": "https://vantosi.ivanticloud.com",
+        "sfdc_url": "nvuprd-sfc.ivanticloud.com",
+        "user": "[Ivanti Neurons user]",
+        "password": "[Ivanti Neurons password]"
+    },
+    "may14": {
+        "auth_url": "https://nvuprd-sfc.ivanticloud.com/5e1ed916-35b4-49ec-a048-805fe5f38878/connect/token",
+        "client_id": "AppReg_customClientType_b87ddb49-aa7e-4c35-9305-e84adc8408ea",
+        "client_secret": "[Ivanti Neurons app client secret]",
+        "scope": "dataservices.read",
+        "landscape": "NVU",
+        "tenant_id": "5e1ed916-35b4-49ec-a048-805fe5f38878",
+        "tenant_url": "nvz-prd-may14-06.ivanticloud.com",
+        "sfdc_url": "nvuprd-sfc.ivanticloud.com",
+        "user": "[Ivanti Neurons user]",
+        "password": "[Ivanti Neurons password]"
+    }
+}

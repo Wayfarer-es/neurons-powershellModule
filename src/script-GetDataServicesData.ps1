@@ -1,4 +1,4 @@
-# *************************** Import Ivanti Neurons PowerShell Module *************************** 
+#Import Module
 if (Test-Path ".\IvantiPSFunctions\IvantiPSFunctions.psm1" -PathType leaf) {
     $Module = Get-Item ".\IvantiPSFunctions\IvantiPSFunctions.psm1" | Resolve-Path -Relative
     Write-Debug "Found module file"
@@ -6,53 +6,32 @@ if (Test-Path ".\IvantiPSFunctions\IvantiPSFunctions.psm1" -PathType leaf) {
     $Module = Get-Item ".\src\IvantiPSFunctions\IvantiPSFunctions.psm1" | Resolve-Path -Relative
     Write-Debug "Found module file"
 } else {
-    $StatusCode = "404"
-    $Exception = [Exception]::new("PowerShell module cannot be found.  Error code ($($StatusCode))")
-    $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
-        $Exception,
-        "$($StatusCode)",
-        [System.Management.Automation.ErrorCategory]::FatalError,
-        $TargetObject
-    )
-    $PSCmdlet.WriteError($ErrorRecord)
+    throw "PowerShell module cannot be found."
     Exit
 }
-
-# ----- Check to see if Module is signed ----- 
-if ($IsWindows) {
-    $Signed = Get-AuthenticodeSignature -FilePath $Module
-    if ($DevMode -ne "true" -and $Signed.Status -ne "Valid") {
-        Write-Error "Module is not signed."
-        Exit
-    }
-}
-else {
-    Write-Debug "Skipping module certificate check."
-}
-
-# ----- Import Module ----- 
 Import-Module -Name $Module -ArgumentList $DevMode -Force
 
+#Import environment
+$_environmentConfig = Get-Content -Path "$PSScriptRoot\Environment\environment-config.json" | ConvertFrom-Json
+$_environment = $_environmentConfig.($_environmentConfig.default)  
+
 #Set parameters to run
-$_clientID = "[insert client id here]"
-$_clientSecret = "[insert client secret here]"
-$_authURL = "[insert auth URL here]"
+$_clientID = $_environment.client_id
+$_clientSecret = $_environment.client_secret
+$_authURL = $_environment.auth_url
 $_scope = "dataservices.read"
-$_landscape = "NVU"
+$_landscape = $_environment.landscape
 
-#Use the userJWT variable when you want to do more than just getting data from Ivanti Neurons
-$_userJWT = ''
-
-
-#Static script parameters
+# *************** Parameters to modify for script to run ***************
+$_endpoint = "device"
 $_filter = "_provider eq 'ivantiinventoryengine'&`$providerFilter=ivantiinventoryengine"
 $_select = "DiscoveryId,DeviceName,Network/NICAddress"
 
 #Run code
-if ( $_userJWT) { $_token = $_userJWT } else { $_token = Get-AccessToken -AuthURL $_authURL -ClientID $_clientID -ClientSecret $_clientSecret -Scopes $_scope }
+$_token = Get-AccessToken -AuthURL $_authURL -ClientID $_clientID -ClientSecret $_clientSecret -Scopes $_scope
 
 $_results = Invoke-Command -ScriptBlock {
-    Get-NeuronsData -Landscape $_landscape -FilterString $_filter -SelectString $_select -ExportToCsv $true -CSVPath "C:\Test File" -Token $_token 
+    Get-NeuronsData -Landscape $_landscape -DataEndpoint $_endpoint -FilterString $_filter -SelectString $_select -ExportToCsv $true -CSVPath "$PSScriptRoot/Data/Test File" -Token $_token 
 }
 
 $_results

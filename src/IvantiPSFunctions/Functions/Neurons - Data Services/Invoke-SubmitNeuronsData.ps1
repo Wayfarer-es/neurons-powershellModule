@@ -31,7 +31,7 @@
     Version: 1.0.0
 #>
 
-function Get-NeuronsData {
+function Invoke-SubmitNeuronsData {
     #Input parameters. These need to be collected at time of execution.
     param (
     
