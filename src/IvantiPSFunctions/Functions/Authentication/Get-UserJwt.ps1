@@ -34,12 +34,16 @@ function Get-UserJwt {
 
     )
 
-    $_checkForSelenium = Invoke-Command -ScriptBlock {
-        Get-Selenium
+    $a = Get-Selenium
+    if ($a.Status -ne '200') {
+        throw "Selenium failed to install.  Can't continue."
+        Exit
     }
 
-    if ( $_checkForSelenium -eq "100" ) {
-        throw "Selenium failed to install.  Can't continue."
+    $a = Invoke-UpdateChromeDriver
+    if ($a.Status -ne '200') {
+        throw "Chrome driver failed to install.  Can't continue."
+        Exit
     }
 
     try {
