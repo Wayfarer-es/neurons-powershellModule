@@ -17,6 +17,9 @@
     .PARAMETER Scopes
     Mandatory. The scope of the access request.
 
+    .PARAMETER Token
+    Optional. An existing token to check if it needs to be refreshed.
+
     .NOTES
     Author:  Ivanti
     Version: 1.0.0
@@ -36,9 +39,25 @@ function Get-AccessToken {
         [String]$ClientSecret,
 
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
-        [String]$Scopes
+        [String]$Scopes,
+
+        [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
+        [String]$Token   
 
     )
+
+
+    if ( $Token ) {
+
+        $_tokenDetails = Invoke-ParseJWTToken -Token $Token
+        $_dateTimeNow = Get-Date
+        $_dateTimeNowEpoch = Get-Date $_dateTimeNow -Uformat %s
+
+        if ( ($_tokenDetails.exp - $_dateTimeNowEpoch) -gt 600) {
+            return $Token
+        } 
+
+    }
 
     #Build the request body and header. This will be done differently depending on the API's authorization method.
     $_body = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"

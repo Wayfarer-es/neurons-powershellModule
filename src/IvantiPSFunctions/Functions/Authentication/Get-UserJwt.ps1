@@ -14,6 +14,9 @@
     .PARAMETER Password
     Mandatory. The client secret issues during the app registration process.
 
+    .PARAMETER Token
+    Optional. An existing token to check if it needs to be refreshed.
+
     .NOTES
     Author:  Ivanti
     Version: 1.0.0
@@ -30,49 +33,61 @@ function Get-UserJwt {
         [String]$User,
 
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
-        [String]$Password
+        [String]$Password,
+        
+        [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
+        [String]$Token
 
     )
 
-    $a = Get-Selenium
-    if ($a.Status -ne '200') {
-        throw "Selenium failed to install.  Can't continue."
-        Exit
-    }
+    if ( $Token ) {
+        $_tokenDetails = Invoke-ParseJWTToken -Token $Token
+        $_dateTimeNow = Get-Date
+        $_dateTimeNowEpoch = Get-Date $_dateTimeNow -Uformat %s
 
-    $a = Invoke-UpdateChromeDriver
-    if ($a.Status -ne '200') {
-        throw "Chrome driver failed to install.  Can't continue."
-        Exit
+        if ( ($_tokenDetails.exp - $_dateTimeNowEpoch) -gt 600) {
+            $_jwt = $Token
+        } 
     }
-
-    try {
         
-        $ChromeDriver = Start-SeChrome
-
-        # Launch a browser and go to URL
-        $ChromeDriver.Navigate().GoToURL($NeuronsURL)
-
-        #Login
-        $ChromeDriver.FindElementByXPath('//*[@id="Username"]').SendKeys($User)
-        $ChromeDriver.FindElementByXPath('//*[@id="Password"]').SendKeys($Password)
-        $ChromeDriver.FindElementsByTagName('button')[0].Click()
-
-        #Get user JWT
-        $_loginUrl = $ChromeDriver.Url
-        $_jwtFound = $_loginUrl -match '(?<=access_token=)(.*)(?=&token_type=)'
-        if ( $_jwtFound ) {
-            $_jwt = $matches[1]
+    if ( $null -eq $_jwt ) {
+        $a = Get-Selenium
+        if ($a.Status -ne '200') {
+            throw "Selenium failed to install.  Can't continue."
+            Exit
         }
-
-        # Cleanup
-        $ChromeDriver.Close()
-        $ChromeDriver.Quit()
-
-        return $_jwt
-
-    } catch {
-        throw "Couldn't get a user JWT"
+    
+        $a = Invoke-UpdateChromeDriver
+        if ($a.Status -ne '200') {
+            throw "Chrome driver failed to install.  Can't continue."
+            Exit
+        }
+    
+        try {
+            
+            $ChromeDriver = Start-SeChrome
+    
+            # Launch a browser and go to URL
+            $ChromeDriver.Navigate().GoToURL($NeuronsURL)
+    
+            #Login
+            $ChromeDriver.FindElementByXPath('//*[@id="Username"]').SendKeys($User)
+            $ChromeDriver.FindElementByXPath('//*[@id="Password"]').SendKeys($Password)
+            $ChromeDriver.FindElementsByTagName('button')[0].Click()
+    
+            #Get user JWT
+            $seleniumWait = New-Object -TypeName OpenQA.Selenium.Support.UI.WebDriverWait($ChromeDriver, (New-TimeSpan -Seconds 10))
+            $seleniumWait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementIsVisible([OpenQA.Selenium.By]::ClassName(("home-title")))) | Out-Null
+            $_jwtFound = $ChromeDriver.ExecuteScript("return sessionStorage.getItem('jwt')")
+            $_jwt = [string]$_jwtFound
+    
+            # Cleanup
+            $ChromeDriver.Close()
+            $ChromeDriver.Quit()
+    
+        } catch {
+            throw "Couldn't get a user JWT"
+        }
     }
-
+    return $_jwt
 }
