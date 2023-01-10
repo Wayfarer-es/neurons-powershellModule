@@ -7,15 +7,18 @@
 
     .PARAMETER Landscape
     Mandatory. Landscape for the desired customer.
+
+    .PARAMETER DiscoveryId
+    Mandatory. The Discovery ID of the record for which you want all the data. 
     
     .PARAMETER DataEndpoint
-    Optional. Provide the data endpoint for which you want to delete data. 
+    Optional. Provide the data endpoint from which you want to get data. 
 
     .PARAMETER FilterString
     Optional. String to specify Data Services filter string. Don't include "filer=".
     
-    .PARAMETER SelectString
-    Optional. String to specify Data Services select string. Don't include "select=".
+    .PARAMETER SaveToDevice
+    Optional. Boolean to specify if you want to save the record to your machine.
 
     .PARAMETER ExportToCsv
     Optional. Boolean to specify that results to be saved in a CSV file.  CSV files will be stored under C:\Ivanti\Reports\.
@@ -37,16 +40,19 @@ function Get-NeuronsDataAll {
     
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
         [String]$Landscape,
-        
+    
+        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
+        [String]$DiscoveryId,
+
         [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
         [String]$DataEndpoint="device",
 
-        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
-        [String]$FilterString="false",
-
-        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
-        [String]$DiscoveryId,
+        [Parameter(Mandatory = $false, ValueFromPipeline = $false)]
+        [String]$FilterString="exists(DiscoveryId)",
     
+        [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
+        [bool]$SaveToDevice=$false,
+
         [Parameter(Mandatory = $true, ValueFromPipeline = $false)]
         [String]$CSVPath="$PSScriptRoot\Data\",
 
@@ -101,8 +107,12 @@ function Get-NeuronsDataAll {
             $_response = $_response.value | ConvertFrom-InvalidJson
         }
 
-        $_response.value | Add-Content -Path $_csvPathName
-        return "200"
+        if ( $SaveToDevice -ne $false) { $_response.value | Add-Content -Path $_csvPathName }
+
+        $_result = @{"Status"="200"}
+        $_result += @{"Record"=$_response.value | ConvertTo-Json -Depth 100}
+        return $_result
+
     } catch {
         throw "Couldn't get record data for DiscoveryId=$DiscoveryId"
     } 
