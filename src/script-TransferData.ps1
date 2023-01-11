@@ -40,11 +40,11 @@ foreach ( $_endpoint in $_dataEndpoints ) {
 
     #Get list of providers
     try {
-        [System.Collections.ArrayList]$_providers = Invoke-Command -ScriptBlock {
+        [System.Collections.ArrayList]$_providers = @(Invoke-Command -ScriptBlock {
             Get-NeuronsDataProviders -Landscape $_t1_landscape -DataEndpoint $_endpoint -Token $_t1_token
             $_dbgMessage = "Got list of providers for $_endpoint endpoint"
             Write-Host $_dbgMessage
-        }
+        })
     } catch {
         Throw "Couldn't get list of providers for $_endpoint endpoint"
     }

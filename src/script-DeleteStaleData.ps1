@@ -13,7 +13,7 @@ Import-Module -Name $Module -ArgumentList $DevMode -Force
 
 #Import environment
 $_environmentConfig = Get-Content -Path "$PSScriptRoot\Environment\environment-config.json" | ConvertFrom-Json
-$_environment = $_environmentConfig.($_environmentConfig.default)  
+$_environment = $_environmentConfig.($_environmentConfig.default)
 
 #Set parameters to run
 $_NeuronsURL = $_environment.tenant_url
@@ -34,13 +34,13 @@ foreach ( $_endpoint in $_dataEndpoints ) {
     #Get list of providers
     try {
 
-        [System.Collections.ArrayList]$_providers = Invoke-Command -ScriptBlock {
+        [System.Collections.ArrayList]$_providers = @(Invoke-Command -ScriptBlock {
 
             Get-NeuronsDataProviders -Landscape $_landscape -DataEndpoint $_endpoint -Token $_userJWT
             $_dbgMessage = "Got list of providers for $_endpoint endpoint"
             Write-Host $_dbgMessage
 
-        }
+        })
 
         if ( $_ignoreWarrantyProviders -eq $true ) {
             $_providers.Remove("dellwarrantycollector")
