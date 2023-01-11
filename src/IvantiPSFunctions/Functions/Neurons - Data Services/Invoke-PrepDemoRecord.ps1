@@ -30,6 +30,7 @@ function Invoke-PrepDemoRecord {
     
     $_record = $Record | ConvertFrom-Json
     $_record.PsObject.Properties.Remove('DiscoveryId')
+    $_record.PsObject.Properties.Remove('Ivanti')
     $_record.DiscoveryMetadata.PsObject.Properties.Remove('Providers')
     $_record.DiscoveryMetadata.PsObject.Properties.Remove('Providers_pkAttrName_name')
     $_record.DiscoveryMetadata.PsObject.Properties.Remove('Providers_pkAttrName')
